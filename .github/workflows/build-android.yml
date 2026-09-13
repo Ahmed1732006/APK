@@ -6,6 +6,7 @@ on:
     paths:
       - 'index.html'
       - '2.html'
+      - 'index3.html'
       - 'app/**'
       - '*.html'
       - '*.js'
@@ -20,7 +21,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,6 +38,9 @@ jobs:
 
       - name: Add Android platform
         run: npx cap add android
+
+      - name: Prepare Android app icon and splash
+        run: node scripts/prepare-android.mjs
 
       - name: Sync Capacitor
         run: npx cap sync android
