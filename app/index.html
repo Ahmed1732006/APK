@@ -933,7 +933,7 @@
                 return `
               <div class="item-row anim-fade-up">
                 ${adminActions}
-                <div class="item-thumb ${thumbClass}" style="${thumbStyle}">${!hasImage ? '📄' : ''}</div>
+                <div class="item-thumb ${thumbClass}" data-material-image="${hasImage ? escapeHtml(it.image) : ''}" data-material-name="${escapeHtml(it.name || it.fileName || 'صورة')}" style="${thumbStyle}">${!hasImage ? '📄' : ''}</div>
                 <div class="item-info">
                   <div class="item-name ${it.name ? '' : 'empty'}" style="font-weight:${it.textBold===false?'700':'900'};color:${escapeHtml(it.textColor||'#111827')}">${escapeHtml(it.name || 'بدون اسم')}</div>
                   ${isAdminRole ? `<div class="item-visibility"><i class="fas fa-eye"></i> ${escapeHtml(visibilityLabel(it.visibilityMode))}</div>` : ''}
@@ -1260,7 +1260,7 @@
                       ? `<button class="profile-page-btn" data-act="exit-view-as-member"><i class="fas fa-right-from-bracket"></i> الرجوع لوضع الأدمن</button>`
                       : `<button class="profile-page-btn" data-act="enter-view-as-member"><i class="fas fa-eye"></i> المشاهدة (معاينة كعضو)</button>`) : ''}
                     ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-notif-admin" title="إدارة الإشعارات"><i class="fas fa-bell"></i> إدارة الإشعارات</button>` : ''}
-                    ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-video-library" title="إدارة فيديوهات الترحيب"><i class="fas fa-film"></i> إدارة الفيديوهات</button>` : ''} ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-admin-manager" title="فتح لوحة إدارة الأعضاء" onclick="location.href='../admin-manager.html'"><i class="fas fa-screwdriver-wrench"></i> إدارة الأعضاء</button>` : ''} ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-pdf-scanner" title="فحص بصمات PDF" onclick="location.href='../pdf-forensic-scanner.html'"><i class="fas fa-fingerprint"></i> فحص بصمات PDF</button>` : ''}
+                    ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-video-library" title="إدارة فيديوهات الترحيب"><i class="fas fa-film"></i> إدارة الفيديوهات</button>` : ''} ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-admin-manager" title="فتح لوحة إدارة الأعضاء" ><i class="fas fa-screwdriver-wrench"></i> إدارة الأعضاء</button>` : ''} ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-pdf-scanner" title="فحص بصمات PDF" ><i class="fas fa-fingerprint"></i> فحص بصمات PDF</button>` : ''}
                     <button class="profile-page-btn danger" data-act="logout"><i class="fas fa-sign-out-alt"></i> تسجيل خروج</button>
                   </div>
                 </div>
@@ -3228,6 +3228,18 @@
                      break;
                  }
 
+                case 'open-admin-manager': {
+                    if(!isAdmin()) return showToast('غير مصرح به','error');
+                    location.href = new URL('../admin-manager.html', document.baseURI).href;
+                    break;
+                }
+
+                case 'open-pdf-scanner': {
+                    if(!isAdmin()) return showToast('غير مصرح به','error');
+                    location.href = new URL('../pdf-forensic-scanner.html', document.baseURI).href;
+                    break;
+                }
+
                 case 'open-notif-admin': {
                     if(!isAdmin()) return showToast('غير مصرح به','error');
                     state.notifAdminEditing = null;
@@ -3348,13 +3360,6 @@
                             });
                             if(error) throw error;
                             showToast('تم إرسال الإشعار.','success');
-                            // Also push it as a real phone notification (works even
-                            // with the app fully closed), not just inside the app.
-                            try{
-                                await sb.functions.invoke('send-push', {
-                                    body: { title, body, url: 'app/index.html?openNotifCenter=1' }
-                                });
-                            }catch(pushErr){ console.warn('send-push call failed', pushErr); }
                         }
                         state.notifAdminEditing = null;
                         state._notifDraftTitle = ''; state._notifDraftBody = ''; state._notifDraftTarget = 'all'; state._notifDraftTargetUserIds = [];
@@ -4584,25 +4589,15 @@ async function listWelcomeVideoObjects(path=''){
 
         async function bootApp(){
             try{
-                // When launched from the Android startup fallback, give Supabase
-                // one last short chance to restore a persisted session before
-                // showing Session Guard. This prevents a false guard flash when
-                // the native WebView is still restoring local storage.
-                const startupGuard = new URLSearchParams(location.search).get('startupGuard') === '1';
-                let session = null;
-                let lastErr = null;
-                for(let attempt=0; attempt < (startupGuard ? 3 : 1); attempt++) {
-                    try {
-                        const r = await Promise.race([
-                            sb.auth.getSession(),
-                            new Promise((_,reject)=>setTimeout(()=>reject(new Error('SESSION_RESTORE_TIMEOUT')), 2200))
-                        ]);
-                        session = r?.data?.session || null;
-                        if(session?.user) break;
-                    } catch(e) { lastErr = e; }
-                    if(!session?.user && attempt < 2) await new Promise(r=>setTimeout(r,250));
-                }
-                if(!session?.user){renderAccessMessage('لا توجد جلسة دخول','افتح الموقع من البداية وسجل الدخول أولًا.','العودة لبداية الموقع',{sessionGuard:true});return;}
+                // Give Supabase a short silent window to restore the persisted
+                // session. During this time we keep the app on its own loading
+                // surface; we never flash the login page.
+                const sessionResult = await Promise.race([
+                    sb.auth.getSession(),
+                    new Promise(resolve=>setTimeout(()=>resolve({data:{session:null},error:null,__timeout:true}),7000))
+                ]);
+                const session=sessionResult?.data?.session || null;
+                if(!session?.user){renderAccessMessage('لا توجد جلسة دخول','افتح التطبيق من البداية وسجل الدخول أولًا.','العودة لبداية التطبيق',{sessionGuard:true});return;}
                 currentAuthUser = session.user;
                 const {data:profile,error}=await sb.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
                 if(error)throw error;
@@ -4665,109 +4660,10 @@ if (!window.__midadDragonThemeObserver) {
 <script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="../pdf-fingerprint-engine.js"></script>
 <script src="../midad-round5.js"></script>
+<script src="native-app.js"></script>
 <script>bootApp();</script>
 <script src="theme-common.js"></script>
 <script src="theme-system.js"></script>
-<script>
-(function ivNativeIntegration(){
-    // Everything here is best-effort: on the plain web site (no Capacitor)
-    // window.Capacitor is undefined and this whole block silently does nothing.
-    function whenBooted(fn, tries){
-        tries = tries || 0;
-        if(typeof openModal==='function' && typeof loadNotifCenterList==='function'){ fn(); return; }
-        if(tries > 100) return; // ~10s, give up quietly
-        setTimeout(function(){ whenBooted(fn, tries+1); }, 100);
-    }
-
-    function openNotifCenterNow(){
-        whenBooted(async function(){
-            try{ await loadNotifCenterList(); state.notifCenterExpandedId=null; openModal('notif-center', {}); }
-            catch(e){ console.warn('open notif center failed', e); }
-        });
-    }
-
-    // Deep link from a system notification tap (?openNotifCenter=1) or from
-    // the service worker's notificationclick handler on the web build.
-    try{
-        const params = new URLSearchParams(location.search);
-        if(params.get('openNotifCenter')==='1') openNotifCenterNow();
-    }catch(_){}
-
-    if(!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return;
-
-    // ── Hardware back button ──────────────────────────────────────────
-    // Goal: pressing back never re-shows the blue login/loading screen
-    // (index.html). Inside the app it closes whatever modal is open;
-    // at the app's home screen it exits the app instead of navigating
-    // backward into the login gate.
-    try{
-        const { App } = window.Capacitor.Plugins || {};
-        if(App && App.addListener){
-            App.addListener('backButton', function(){
-                try{
-                    if(typeof closeModal==='function' && typeof state!=='undefined' && state.modal){
-                        closeModal();
-                        return;
-                    }
-                }catch(_){}
-                try{
-                    const openEl = document.querySelector('.modal-overlay, .modal-backdrop, [data-modal-open="1"]');
-                    if(openEl){ openEl.remove(); return; }
-                }catch(_){}
-                // Already at home with nothing open: minimize instead of
-                // ever navigating back to index.html's login screen.
-                if(App.minimizeApp) App.minimizeApp();
-                else if(App.exitApp) App.exitApp();
-            });
-        }
-    }catch(e){ console.warn('back button wiring failed', e); }
-
-    // ── Notification permission prompt ────────────────────────────────
-    // Ask once per app open if notifications are not enabled yet, so a
-    // user who declined earlier is reminded each time they open the app
-    // (rather than being asked forever in a loop within one session).
-    try{
-        const { PushNotifications } = window.Capacitor.Plugins || {};
-        if(PushNotifications){
-            PushNotifications.checkPermissions().then(function(res){
-                if(res && res.receive !== 'granted'){
-                    return PushNotifications.requestPermissions();
-                }
-            }).then(function(res){
-                if(res && res.receive === 'granted' && PushNotifications.register) PushNotifications.register();
-            }).catch(function(e){ console.warn('push permission check failed', e); });
-
-            PushNotifications.addListener('registration', function(token){
-                // Every device registers to Firebase; the server side sends to
-                // topic "all_users" so a broadcast notification/admin message
-                // reaches everyone at once, even with the app fully closed.
-                try{
-                    const { FCM } = window.Capacitor.Plugins || {};
-                    if(FCM && FCM.subscribeTo){
-                        FCM.subscribeTo({ topic: 'all_users' }).catch(function(e){ console.warn('FCM topic subscribe failed', e); });
-                    }
-                    whenBooted(async function(){
-                        try{
-                            const user = (typeof getCurrentAuthUser==='function') ? await getCurrentAuthUser() : null;
-                            if(user && user.id && typeof sb!=='undefined'){
-                                await sb.from('device_push_tokens').upsert({
-                                    user_id: user.id, token: token.value, platform: 'android', updated_at: new Date().toISOString()
-                                }, { onConflict: 'user_id,token' });
-                            }
-                        }catch(e){ console.warn('save push token failed', e); }
-                    });
-                }catch(e){ console.warn('subscribe to topic failed', e); }
-            });
-
-            // Tapping a system notification (whether the app was open,
-            // backgrounded, or fully closed) opens the notifications screen.
-            PushNotifications.addListener('pushNotificationActionPerformed', function(){
-                openNotifCenterNow();
-            });
-        }
-    }catch(e){ console.warn('push notifications wiring failed', e); }
-})();
-</script>
 </body>
 </html>
 

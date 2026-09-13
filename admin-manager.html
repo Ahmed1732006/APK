@@ -260,9 +260,10 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 </div></div>
 
 <div id="appView" class="wrap hidden">
+<div class="iv-admin-back-wrap"><button type="button" class="iv-admin-back" onclick="ivAdminBack()"><i class="fa-solid fa-arrow-right"></i> رجوع</button></div>
 <div class="brandbar">
 <div class="brandmark"><div class="mark"><img src="./10.png" alt="In The Void Videomanagement"></div><div class="txt"><b>In The Void</b><span>Videomanagement</span></div></div>
-<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="livepill"><i></i>متصل الآن</span><button class="btn-cyan" onclick="window.open('https://in-the-void-eta.vercel.app/','_blank','noopener,noreferrer')"><img class="brand-nav-icon" src="./13.png" alt="">In TheVoid</button><button class="btn-purple" onclick="window.open('https://videomanagement-ivory.vercel.app/','_blank','noopener,noreferrer')"><img class="brand-nav-icon" src="./11.png" alt="">إدارة الفيديوهات</button><button class="btn-gray" onclick="logout()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></div>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="livepill"><i></i>متصل الآن</span><button class="btn-cyan" onclick="location.href='./app/index.html'"><img class="brand-nav-icon" src="./13.png" alt="">In TheVoid</button><button class="btn-purple" onclick="location.href='./admin-videos.html'"><img class="brand-nav-icon" src="./11.png" alt="">إدارة الفيديوهات</button><button class="btn-gray" onclick="logout()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></div>
 </div>
 <div class="card"><div class="top"><div><h2 style="margin-bottom:4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>نظرة عامة</h2><div class="sub">كل أدوات الإدارة في مكان واحد.</div></div></div><div class="grid" id="stats"></div></div>
 
@@ -854,9 +855,6 @@ async function sendMessage(){
   const vr=$('messageViews').value,max_views=vr==='unlimited'?null:Math.max(1,parseInt(vr,10)||1);
   const payload={target_user_id:target==='all'?null:target,title,body,max_views,is_active:true};
   const {error}=await sb.from('user_messages').insert(payload);if(error)throw error;
-  // Also push it as a real phone notification (works even with the app
-  // fully closed), not just as an in-app message the user sees on open.
-  try{ await sb.functions.invoke('send-push', { body:{ title, body, url:'app/index.html?openNotifCenter=1' } }); }catch(pushErr){ console.warn('send-push call failed', pushErr); }
   show('messageStatus',target==='all'?'تم إرسال الرسالة لجميع الحسابات مع المرفق ✅':'تم إرسال الرسالة للحساب المحدد مع المرفق ✅','ok');
   $('messageTitle').value='';$('messageBody').value='';$('messageMedia').value='';$('messageMediaPreview').innerHTML='';
  }catch(e){show('messageStatus','تعذر إرسال الرسالة: '+(e.message||'خطأ'),'err');}

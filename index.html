@@ -817,7 +817,6 @@
             const LOGIN_FORM = document.querySelector(".login-form");
             document.documentElement.style.setProperty("--on","0");
             LOGIN_FORM.classList.remove("active");
-            LOGIN_FORM.setAttribute('aria-hidden','true');
 
             const PROXY = document.createElement("div");
             const CORDS = gsap.utils.toArray(".cords path");
@@ -846,15 +845,22 @@
                     set([DUMMY_CORD,HIT],{display:"none"});
                     set(CORDS[0],{display:"block"});
                     AUDIO.CLICK.play().catch(()=>{});
-                    LOGIN_FORM.classList.remove("active");
-                    if(STATE.ON){
-                        ON.setAttribute("checked",true);OFF.removeAttribute("checked");
-                        void handleLampActivated();
-                    } else {
-                        ON.removeAttribute("checked");OFF.setAttribute("checked",true);
-                    }
+                    LOGIN_FORM.classList.toggle("active",STATE.ON && !IS_NATIVE_ANDROID);
+                    if(STATE.ON){ON.setAttribute("checked",true);OFF.removeAttribute("checked");}
+                    else{ON.removeAttribute("checked");OFF.setAttribute("checked",true);}
                 },
-                onComplete:()=>{set([DUMMY_CORD,HIT],{display:"block"});set(CORDS[0],{display:"none"});RESET();}
+                onComplete:async()=>{
+                    set([DUMMY_CORD,HIT],{display:"block"});set(CORDS[0],{display:"none"});RESET();
+                    if(!IS_NATIVE_ANDROID || !STATE.ON) return;
+                    try {
+                        const result=await Promise.race([
+                            nativeSessionPromise || Promise.resolve({data:{session:null}}),
+                            new Promise(resolve=>setTimeout(()=>resolve({data:{session:null},__timeout:true}),6500))
+                        ]);
+                        if(result?.data?.session?.user) location.replace('app/index.html');
+                        else LOGIN_FORM.classList.add('active');
+                    } catch (_) { LOGIN_FORM.classList.add('active'); }
+                }
             });
             for(let i=1;i<CORDS.length;i++) CORD_TL.add(to(CORDS[0],{morphSVG:CORDS[i],duration:CORD_DURATION,repeat:1,yoyo:true}));
 
@@ -939,75 +945,13 @@
             // ═══════════════════════════════════════════════════════════════
             const SUPABASE_URL = "https://clobfjrjhdysmqhbwzlc.supabase.co";
             const SUPABASE_KEY = "sb_publishable_LEFYVl0Y8VOnMIbBZev1Vg_0pYSMWpv";
-            const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-                auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' }
-            });
+            const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            async function showStartupLogin(){
-                LOGIN_FORM.classList.add("active");
-                LOGIN_FORM.setAttribute('aria-hidden','false');
-                showView(loginView);
-            }
-
-            async function routeToStartupGuard(){
-                try {
-                    sessionStorage.setItem('midad_startup_guard_reason', startupSessionError?.message || 'NO_SESSION');
-                } catch (_) {}
-                location.replace('app/index.html?startupGuard=1');
-            }
-
-            async function handleLampActivated(){
-                try {
-                    // Prefer the already-running silent probe so the user sees no
-                    // intermediate login screen on a returning session.
-                    let session = startupSessionState === 'loading'
-                        ? await startupSessionPromise
-                        : startupSessionData;
-
-                    if (startupSessionState === 'error') {
-                        await routeToStartupGuard();
-                        return;
-                    }
-
-                    if (!session?.user) {
-                        await showStartupLogin();
-                        return;
-                    }
-
-                    await handleLoggedInUser(session.user);
-                } catch (e) {
-                    startupSessionError = e;
-                    await routeToStartupGuard();
-                }
-            }
-
-            // App startup gate: probe the existing Supabase session silently while
-            // the interactive lamp is waiting. A valid session never exposes the
-            // login card; a real missing session reveals it only after the lamp is on.
-            let startupSessionState = 'loading';
-            let startupSessionData = null;
-            let startupSessionError = null;
-            const STARTUP_SESSION_TIMEOUT_MS = 6500;
-
-            async function probeStartupSession(){
-                let timer = null;
-                try {
-                    const result = await Promise.race([
-                        sb.auth.getSession(),
-                        new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('SESSION_BOOT_TIMEOUT')), STARTUP_SESSION_TIMEOUT_MS); })
-                    ]);
-                    if (timer) clearTimeout(timer);
-                    startupSessionData = result?.data?.session || null;
-                    startupSessionState = 'ready';
-                    return startupSessionData;
-                } catch (e) {
-                    if (timer) clearTimeout(timer);
-                    startupSessionError = e;
-                    startupSessionState = 'error';
-                    return null;
-                }
-            }
-            const startupSessionPromise = probeStartupSession();
+            // Android app boot: keep the lamp as the required entry interaction,
+            // while checking the saved Supabase session silently in parallel.
+            const IS_NATIVE_ANDROID = !!(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.platform === 'android');
+            let nativeSessionPromise = null;
+            if (IS_NATIVE_ANDROID) nativeSessionPromise = sb.auth.getSession().catch(() => ({data:{session:null}}));
 
             function normalizePhone(phone){
                 return phone.replace(/\s+/g,'').replace(/-/g,'');
@@ -1334,14 +1278,8 @@
                     btn.textContent='إرسال طلب إنشاء الحساب';
                 }
             });
-            // Startup session is checked silently; login is revealed only after
-            // the interactive lamp completes and only when there is truly no session.
-            sb.auth.onAuthStateChange((event, session)=>{
-                if (event === 'SIGNED_IN' && session?.user && STATE.ON) {
-                    startupSessionData = session;
-                    startupSessionState = 'ready';
-                }
-
+            // لا يوجد تسجيل دخول تلقائي عند فتح الصفحة. المستخدم يضغط زر الدخول بنفسه.
+            sb.auth.onAuthStateChange((event)=>{
                 if(event==='SIGNED_OUT'){
                     const id=document.getElementById('loginIdentifier'), pw=document.getElementById('loginPassword');
                     if(id) id.value=''; if(pw) pw.value='';

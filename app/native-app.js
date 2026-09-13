@@ -1,8 +1,223 @@
-(()=>{const native=!!(window.Capacitor?.isNativePlatform?.()||window.Capacitor?.platform==='android');if(!native)return;const DB='in_the_void_app_files',STORE='files',P='iv_app_cached_v4:';const st=document.createElement('style');st.textContent=`.iv-file-viewer{position:fixed;inset:0;z-index:110000;background:rgba(3,7,12,.97);display:flex;align-items:center;justify-content:center;padding:8px}.iv-file-panel{width:min(1000px,98vw);height:min(94vh,920px);background:#0c121c;border:1px solid rgba(255,255,255,.14);border-radius:20px;display:flex;flex-direction:column;overflow:hidden}.iv-file-head{min-height:58px;display:flex;align-items:center;gap:8px;padding:9px 12px;color:#fff;direction:rtl;border-bottom:1px solid rgba(255,255,255,.1)}.iv-file-head strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 13px Cairo,system-ui,sans-serif}.iv-file-head button{border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.07);color:#fff;border-radius:11px;padding:8px 11px;font:800 11px Cairo,system-ui,sans-serif}.iv-file-body{flex:1;min-height:0;overflow:auto;padding:8px;display:flex;align-items:center;justify-content:center}.iv-file-body img{max-width:100%;max-height:100%;object-fit:contain;border-radius:12px}.iv-file-body video{width:100%;max-height:100%;background:#000;border-radius:12px}.iv-pdf-pages{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;padding-bottom:18px}.iv-pdf-page{background:#fff;max-width:100%;height:auto;box-shadow:0 8px 25px rgba(0,0,0,.25)}.iv-pdf-loading{color:#dbeafe;text-align:center;padding:30px;font:800 13px Cairo,system-ui,sans-serif}`;document.head.append(st);
-function db(){return new Promise((res,rej)=>{const q=indexedDB.open(DB,1);q.onupgradeneeded=()=>{if(!q.result.objectStoreNames.contains(STORE))q.result.createObjectStore(STORE,{keyPath:'key'});};q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error)})}async function get(k){const d=await db();return new Promise((res,rej)=>{const r=d.transaction(STORE,'readonly').objectStore(STORE).get(k);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error)})}async function put(x){const d=await db();return new Promise((res,rej)=>{const r=d.transaction(STORE,'readwrite').objectStore(STORE).put(x);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}function key(p){return P+String(p||'')}function meta(p){try{return JSON.parse(localStorage.getItem(key(p))||'null')}catch(_){return null}} async function hasCached(p){if(meta(p))return true;try{return !!(await get(key(p)))?.blob}catch(_){return false}}function setmeta(p,x){try{localStorage.setItem(key(p),JSON.stringify(x))}catch(_){}}function clear(p){try{localStorage.removeItem(key(p))}catch(_){}}function mime(n){const e=String(n||'').split('.').pop().toLowerCase();return({pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',gif:'image/gif',mp4:'video/mp4',webm:'video/webm',mov:'video/quicktime',m4v:'video/x-m4v',ogv:'video/ogg'})[e]||'application/octet-stream'}function pdf(n,t){return String(t||'').includes('pdf')||/\.pdf$/i.test(n||'')}function img(n,t){return String(t||'').startsWith('image/')||/\.(png|jpe?g|webp|gif)$/i.test(n||'')}function vid(n,t){return String(t||'').startsWith('video/')||/\.(mp4|webm|mov|m4v|ogv)$/i.test(n||'')}
-function blobToBase64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result||''));r.onerror=rej;r.readAsDataURL(blob)})}
-async function openExternal(blob,name){const FS=window.Capacitor?.Plugins?.Filesystem,SH=window.Capacitor?.Plugins?.Share;const safe=String(name||'file.pdf').replace(/[^\w.\-\u0600-\u06FF ]+/g,'_').replace(/\s+/g,'_').slice(0,120);if(FS&&SH){try{const b64=await blobToBase64(blob);const path=`iv-share/${Date.now()}-${safe}`;await FS.writeFile({path,data:b64.split(',')[1],directory:'CACHE',recursive:true});const uri=await FS.getUri({path,directory:'CACHE'});await SH.share({title:name||'فتح الملف',text:name||'ملف من IN THE VOID',files:[uri.uri],dialogTitle:'فتح من برنامج آخر'});return true}catch(e){console.warn('capacitor share failed',e)}}try{const f=new File([blob],safe,{type:blob.type||mime(name)});if(navigator.share&&(!navigator.canShare||navigator.canShare({files:[f]}))){await navigator.share({title:name||'ملف',files:[f]});return true}}catch(e){if(e?.name==='AbortError')return true}showToast?.('لا يمكن فتح الملف ببرنامج خارجي على هذا الجهاز.','error');return false}
-function view(blob,name){document.querySelector('.iv-file-viewer')?.remove();const u=URL.createObjectURL(blob),ov=document.createElement('div');ov.className='iv-file-viewer';const p=document.createElement('div');p.className='iv-file-panel';const h=document.createElement('div');h.className='iv-file-head';const t=document.createElement('strong');t.textContent=name||'ملف';const close=document.createElement('button');close.textContent='×';close.setAttribute('aria-label','إغلاق');h.append(t);if(pdf(name,blob.type)){const other=document.createElement('button');other.textContent='فتح من برنامج آخر';other.onclick=()=>openExternal(blob,name);h.append(other)}h.append(close);const b=document.createElement('div');b.className='iv-file-body';p.append(h,b);ov.append(p);document.body.append(ov);const done=()=>{URL.revokeObjectURL(u);ov.remove()};close.onclick=done;ov.onclick=e=>{if(e.target===ov)done()};if(img(name,blob.type)){const x=document.createElement('img');x.src=u;b.append(x)}else if(vid(name,blob.type)){const x=document.createElement('video');x.src=u;x.controls=true;x.autoplay=true;x.playsInline=true;b.append(x)}else if(pdf(name,blob.type)){const pages=document.createElement('div');pages.className='iv-pdf-pages';b.append(pages);const l=document.createElement('div');l.className='iv-pdf-loading';l.textContent='جاري فتح ملف PDF داخل التطبيق…';pages.append(l);renderPdf(blob,pages).catch(e=>{l.textContent='تعذر عرض الـPDF داخل التطبيق. استخدم «فتح من برنامج آخر».';console.warn(e)})}}
-async function pdfjs(){if(window.pdfjsLib)return window.pdfjsLib;await new Promise((res,rej)=>{const s=document.createElement('script');s.src='vendor/pdf.min.js';s.onload=res;s.onerror=rej;document.head.append(s)});window.pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';return window.pdfjsLib}async function renderPdf(blob,c){const j=await pdfjs(),d=await j.getDocument({data:new Uint8Array(await blob.arrayBuffer())}).promise;c.innerHTML='';for(let i=1;i<=d.numPages;i++){const p=await d.getPage(i),v=p.getViewport({scale:1}),sc=Math.max(.65,Math.min(1.55,Math.min((c.clientWidth||900)/v.width,1.55))),vp=p.getViewport({scale:sc}),can=document.createElement('canvas');can.className='iv-pdf-page';can.width=Math.ceil(vp.width);can.height=Math.ceil(vp.height);c.append(can);await p.render({canvasContext:can.getContext('2d'),viewport:vp}).promise}}
-async function cache(button){const path=button.dataset.file,name=button.dataset.name||String(path).split('/').pop()||'ملف';if(!navigator.onLine)throw new Error('NO_INTERNET');window.__midadStartDownloadAnimation?.(button);try{let data,error;if(/^https?:\/\//i.test(path)){const r=await fetch(path);if(!r.ok)throw new Error('DOWNLOAD_FAILED');data=await r.blob();error=null}else{({data,error}=await sb.storage.from('materials').download(path))}if(error)throw error;await put({key:key(path),path,name,type:data.type||mime(name),blob:data,savedAt:Date.now()});setmeta(path,{name,savedAt:Date.now()});window.__midadCompleteDownloadAnimation?.(button);update();view(data,name)}catch(e){window.__midadCancelDownloadAnimation?.(button);throw e}}async function openCached(path,name){const x=await get(key(path));if(!x?.blob){clear(path);update();return false}view(x.blob,x.name||name||'ملف');return true}async function update(){for(const b of document.querySelectorAll('.btn-download[data-act="download-file"][data-file]')){const c=await hasCached(b.dataset.file);b.dataset.cached=c?'1':'0';b.innerHTML=c?'<i class="fas fa-folder-open"></i> فتح':'<i class="fas fa-download"></i> تحميل'}}
-document.addEventListener('click',async e=>{const b=e.target?.closest?.('.btn-download[data-act="download-file"][data-file]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();try{if(await hasCached(b.dataset.file)&&await openCached(b.dataset.file,b.dataset.name))return;await cache(b)}catch(err){showToast?.(err?.message==='NO_INTERNET'?'لا يوجد اتصال بالإنترنت. هذا الملف غير محفوظ داخل التطبيق.':(err?.message||'تعذر حفظ الملف داخل التطبيق.'),'error')}},true);document.addEventListener('click',async e=>{const b=e.target?.closest?.('[data-act="open-video-file"][data-file]');if(!b)return;e.preventDefault();e.stopImmediatePropagation();if(!navigator.onLine){showToast?.('لا يوجد اتصال بالإنترنت. هذا الفيديو غير محفوظ داخل التطبيق.','error');return}try{const {data}=sb.storage.from('materials').getPublicUrl(b.dataset.file);const r=await fetch(data.publicUrl);if(!r.ok)throw new Error();view(await r.blob(),b.dataset.name||'فيديو')}catch(_){showToast?.('تعذر تشغيل الفيديو أو لا يوجد اتصال بالإنترنت.','error')}},true);document.addEventListener('click',e=>{const b=e.target?.closest?.('.item-thumb[data-material-image]');if(!b)return;if(!b.dataset.materialImage)return;e.preventDefault();e.stopImmediatePropagation();if(!navigator.onLine){showToast?.('لا يوجد اتصال بالإنترنت. الصورة غير محفوظة داخل التطبيق.','error');return}fetch(b.dataset.materialImage).then(r=>r.blob()).then(x=>view(x,b.dataset.materialName||'صورة')).catch(()=>showToast?.('لا يوجد اتصال بالإنترنت.','error'))},true);window.__ivCloseTopLayer=()=>{const e=document.querySelector('.iv-file-viewer,.notif-media-overlay,.notif-center-overlay');if(!e)return false;if(e.classList.contains('iv-file-viewer')){e.querySelector('[aria-label="إغلاق"]')?.click();return true}e.querySelector('[data-act="close-modal"]')?.click();return true};setTimeout(update,0);new MutationObserver(update).observe(document.body,{subtree:true,childList:true});})();
+/* IN THE VOID Android-only UX layer.
+   Keeps downloaded files inside the app, provides an in-app image/video/PDF viewer,
+   and turns the standalone admin tools into normal in-app pages with a safe Back button. */
+(() => {
+  const isAndroid = !!(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.platform === 'android');
+  if (!isAndroid) return;
+
+  const DB_NAME = 'in_the_void_app_files';
+  const STORE = 'files';
+  const META_PREFIX = 'iv_app_cached_v2:';
+
+  const css = document.createElement('style');
+  css.id = 'iv-native-app-style';
+  css.textContent = `
+    .iv-file-viewer{position:fixed;inset:0;z-index:110000;background:rgba(3,7,12,.94);display:flex;align-items:center;justify-content:center;padding:14px;backdrop-filter:blur(10px)}
+    .iv-file-panel{position:relative;width:min(1000px,96vw);height:min(92vh,900px);border:1px solid rgba(255,255,255,.14);border-radius:22px;background:rgba(12,18,28,.98);box-shadow:0 30px 90px rgba(0,0,0,.5);display:flex;flex-direction:column;overflow:hidden}
+    .iv-file-head{min-height:58px;display:flex;align-items:center;gap:8px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.1);color:#fff;direction:rtl}
+    .iv-file-head strong{min-width:0;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font:800 13px/1.4 Cairo,system-ui,sans-serif}
+    .iv-file-head button{border:1px solid rgba(255,255,255,.13);background:rgba(255,255,255,.07);color:#fff;border-radius:11px;padding:8px 11px;cursor:pointer;font:800 11px Cairo,system-ui,sans-serif}
+    .iv-file-body{flex:1;min-height:0;overflow:auto;padding:14px;display:flex;align-items:center;justify-content:center}
+    .iv-file-body img{max-width:100%;max-height:100%;object-fit:contain;border-radius:12px}
+    .iv-file-body video{width:100%;max-height:100%;background:#000;border-radius:12px}
+    .iv-pdf-pages{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%}
+    .iv-pdf-page{background:#fff;box-shadow:0 8px 25px rgba(0,0,0,.25);max-width:100%;height:auto;display:block}
+    .iv-pdf-loading{color:#dbeafe;font:800 13px Cairo,system-ui,sans-serif;text-align:center;padding:30px}
+    .iv-native-back{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:7px!important;margin:0 0 14px!important;padding:10px 14px!important;border:1px solid var(--border,#dbe5ef)!important;border-radius:13px!important;background:var(--surface,#fff)!important;color:var(--text,#111827)!important;font:900 12px Cairo,system-ui,sans-serif!important;box-shadow:0 5px 16px rgba(15,23,42,.06)!important;cursor:pointer!important}
+    .iv-native-back:hover{transform:translateY(-1px)}
+    .iv-native-note{padding:9px 12px;border-radius:12px;background:rgba(37,99,235,.08);border:1px solid rgba(37,99,235,.18);color:#64748b;font:700 11px/1.8 Cairo,system-ui,sans-serif;margin:0 0 12px}
+    @media(max-width:600px){.iv-file-viewer{padding:7px}.iv-file-panel{width:100%;height:96vh;border-radius:18px}.iv-file-head{min-height:54px}.iv-file-body{padding:8px}.iv-native-back{width:100%;margin-bottom:10px!important}}
+  `;
+  document.head.appendChild(css);
+
+  function openDb(){
+    return new Promise((resolve,reject)=>{
+      const req=indexedDB.open(DB_NAME,1);
+      req.onupgradeneeded=()=>{ if(!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE,{keyPath:'key'}); };
+      req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error||new Error('تعذر فتح التخزين المحلي.'));
+    });
+  }
+  async function dbGet(key){
+    const db=await openDb();
+    return new Promise((resolve,reject)=>{const r=db.transaction(STORE,'readonly').objectStore(STORE).get(key);r.onsuccess=()=>resolve(r.result||null);r.onerror=()=>reject(r.error);});
+  }
+  async function dbPut(row){
+    const db=await openDb();
+    return new Promise((resolve,reject)=>{const r=db.transaction(STORE,'readwrite').objectStore(STORE).put(row);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error);});
+  }
+  async function dbDelete(key){
+    const db=await openDb();
+    return new Promise((resolve,reject)=>{const r=db.transaction(STORE,'readwrite').objectStore(STORE).delete(key);r.onsuccess=()=>resolve();r.onerror=()=>reject(r.error);});
+  }
+  function keyFor(path){ return META_PREFIX + String(path||''); }
+  function getMeta(path){ try{return JSON.parse(localStorage.getItem(keyFor(path))||'null');}catch(_){return null;} }
+  function setMeta(path,meta){ try{localStorage.setItem(keyFor(path),JSON.stringify(meta));}catch(_){} }
+  function clearMeta(path){ try{localStorage.removeItem(keyFor(path));}catch(_){} }
+  function fileNameFrom(path){ return decodeURIComponent(String(path||'').split('?')[0].split('/').pop()||'file'); }
+  function mimeFor(name, fallback='application/octet-stream'){
+    const ext=String(name||'').split('.').pop().toLowerCase();
+    return ({pdf:'application/pdf',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',webp:'image/webp',gif:'image/gif',mp4:'video/mp4',webm:'video/webm',mov:'video/quicktime',m4v:'video/x-m4v'})[ext]||fallback;
+  }
+  function isPdf(name,type){return String(type||'').includes('pdf')||/\.pdf$/i.test(name||'');}
+  function isImage(name,type){return String(type||'').startsWith('image/')||/\.(png|jpe?g|webp|gif|bmp)$/i.test(name||'');}
+  function isVideo(name,type){return String(type||'').startsWith('video/')||/\.(mp4|webm|mov|m4v|ogv)$/i.test(name||'');}
+
+  function showViewer(blob,name,opts={}){
+    const old=document.querySelector('.iv-file-viewer'); if(old) old.remove();
+    const url=URL.createObjectURL(blob);
+    const overlay=document.createElement('div'); overlay.className='iv-file-viewer';
+    const panel=document.createElement('div'); panel.className='iv-file-panel';
+    const head=document.createElement('div'); head.className='iv-file-head';
+    const title=document.createElement('strong'); title.textContent=name||'ملف';
+    const other=document.createElement('button'); other.type='button'; other.textContent='فتح من برنامج آخر';
+    const close=document.createElement('button'); close.type='button'; close.textContent='×'; close.setAttribute('aria-label','إغلاق');
+    head.append(title);
+    if(isPdf(name,blob.type)) head.append(other);
+    head.append(close);
+    const body=document.createElement('div'); body.className='iv-file-body';
+    panel.append(head,body); overlay.append(panel); document.body.append(overlay);
+    const cleanup=()=>{URL.revokeObjectURL(url);overlay.remove();};
+    close.onclick=cleanup; overlay.addEventListener('click',e=>{if(e.target===overlay)cleanup();});
+
+    if(isImage(name,blob.type)){
+      const img=document.createElement('img'); img.src=url; img.alt=name||'صورة'; body.append(img);
+    }else if(isVideo(name,blob.type)){
+      const v=document.createElement('video'); v.src=url; v.controls=true; v.autoplay=true; v.playsInline=true; body.append(v);
+    }else if(isPdf(name,blob.type)){
+      const pages=document.createElement('div'); pages.className='iv-pdf-pages'; body.append(pages);
+      const loading=document.createElement('div'); loading.className='iv-pdf-loading'; loading.textContent='جاري فتح ملف PDF داخل التطبيق…'; pages.append(loading);
+      renderPdf(blob,pages).catch(async err=>{
+        loading.textContent='تعذر عرض الـPDF داخل التطبيق. يمكنك استخدام «فتح من برنامج آخر».';
+        console.warn('PDF viewer',err);
+      });
+      other.onclick=()=>openWithOtherApp(blob,name);
+    }else{
+      const note=document.createElement('div'); note.className='iv-pdf-loading'; note.textContent='تم حفظ الملف داخل التطبيق. اضغط «فتح من برنامج آخر» لاختياره بتطبيق مناسب.'; body.append(note);
+      other.style.display='inline-flex'; other.onclick=()=>openWithOtherApp(blob,name);
+    }
+  }
+
+  async function ensurePdfJs(){
+    if(window.pdfjsLib) return window.pdfjsLib;
+    await new Promise((resolve,reject)=>{
+      const existing=document.querySelector('script[data-iv-pdfjs]');
+      if(existing){existing.addEventListener('load',resolve,{once:true});existing.addEventListener('error',reject,{once:true});return;}
+      const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; s.dataset.ivPdfjs='1'; s.onload=resolve; s.onerror=()=>reject(new Error('PDF.js unavailable')); document.head.append(s);
+    });
+    if(!window.pdfjsLib) throw new Error('PDF.js unavailable');
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    return window.pdfjsLib;
+  }
+  async function renderPdf(blob,container){
+    const pdfjs=await ensurePdfJs();
+    const data=new Uint8Array(await blob.arrayBuffer());
+    const doc=await pdfjs.getDocument({data}).promise;
+    container.innerHTML='';
+    for(let i=1;i<=doc.numPages;i++){
+      const page=await doc.getPage(i);
+      const base=page.getViewport({scale:1});
+      const maxWidth=Math.min(container.clientWidth||900,900);
+      const scale=Math.max(.7,Math.min(1.65,maxWidth/base.width));
+      const viewport=page.getViewport({scale});
+      const canvas=document.createElement('canvas'); canvas.className='iv-pdf-page';
+      canvas.width=Math.ceil(viewport.width); canvas.height=Math.ceil(viewport.height);
+      container.append(canvas);
+      await page.render({canvasContext:canvas.getContext('2d'),viewport}).promise;
+    }
+  }
+
+  async function openWithOtherApp(blob,name){
+    try{
+      const file=new File([blob],name||'file.pdf',{type:blob.type||mimeFor(name)});
+      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+        await navigator.share({title:name||'ملف PDF',text:'فتح الملف باستخدام تطبيق آخر',files:[file]});
+        return;
+      }
+      throw new Error('SHARE_UNAVAILABLE');
+    }catch(err){
+      if(err?.name==='AbortError') return;
+      try{
+        const u=URL.createObjectURL(blob); window.open(u,'_blank'); setTimeout(()=>URL.revokeObjectURL(u),15000);
+      }catch(_){ alert('هذا الجهاز لا يوفر اختيار برنامج خارجي لهذا الملف.'); }
+    }
+  }
+
+  async function getMaterialBlob(path,name){
+    const {data,error}=await sb.storage.from('materials').download(path);
+    if(error) throw error;
+    return data;
+  }
+  async function cacheMaterial(button){
+    const path=button?.dataset?.file; const name=button?.dataset?.name||fileNameFrom(path)||'ملف';
+    if(!path) throw new Error('لا يوجد مسار للملف.');
+    if(typeof window.__midadStartDownloadAnimation==='function') window.__midadStartDownloadAnimation(button);
+    try{
+      const blob=await getMaterialBlob(path,name);
+      const key=keyFor(path);
+      await dbPut({key,path,name,type:blob.type||mimeFor(name),blob,savedAt:Date.now()});
+      setMeta(path,{name,type:blob.type||mimeFor(name),savedAt:Date.now()});
+      if(typeof window.__midadCompleteDownloadAnimation==='function') window.__midadCompleteDownloadAnimation(button);
+      updateButtons();
+      showViewer(blob,name);
+    }catch(err){
+      if(typeof window.__midadCancelDownloadAnimation==='function') window.__midadCancelDownloadAnimation(button);
+      throw err;
+    }
+  }
+  async function openCached(path,name,button){
+    const row=await dbGet(keyFor(path));
+    if(!row?.blob){clearMeta(path);updateButtons();return false;}
+    showViewer(row.blob,row.name||name||'ملف');
+    return true;
+  }
+  function updateButtons(){
+    document.querySelectorAll('.btn-download[data-act="download-file"][data-file]').forEach(btn=>{
+      const path=btn.dataset.file; const cached=!!getMeta(path);
+      btn.classList.add('iv-native-file-btn');
+      btn.dataset.cached=cached?'1':'0';
+      if(cached){
+        btn.innerHTML='<i class="fas fa-folder-open"></i> فتح';
+        btn.title='الملف محفوظ داخل التطبيق — اضغط لفتحه';
+      }else{
+        btn.innerHTML='<i class="fas fa-download"></i> تحميل';
+        btn.title='حفظ الملف داخل التطبيق';
+      }
+    });
+  }
+
+  // Capture before the platform's normal download handler. In Android, nothing
+  // is written to the public Downloads folder; the file stays in app storage.
+  document.addEventListener('click',async e=>{
+    const btn=e.target?.closest?.('.btn-download[data-act="download-file"][data-file]');
+    if(!btn) return;
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+    const path=btn.dataset.file; const name=btn.dataset.name||fileNameFrom(path)||'ملف';
+    try{
+      if(getMeta(path)){
+        const opened=await openCached(path,name,btn);
+        if(opened) return;
+      }
+      await cacheMaterial(btn);
+    }catch(err){showToast?.(err?.message||'تعذر حفظ الملف داخل التطبيق.','error');}
+  },true);
+
+  // Clicking a material image opens it in the same app instead of doing nothing.
+  document.addEventListener('click',e=>{
+    const thumb=e.target?.closest?.('.item-thumb[data-material-image]');
+    if(!thumb) return;
+    e.preventDefault();e.stopPropagation();
+    const url=thumb.dataset.materialImage; if(!url) return;
+    showViewerUrl(url,thumb.dataset.materialName||'صورة');
+  },true);
+  async function showViewerUrl(url,name){
+    try{
+      const r=await fetch(url); const blob=await r.blob(); showViewer(blob,name);
+    }catch(err){window.open(url,'_blank');}
+  }
+
+  const observer=new MutationObserver(()=>updateButtons());
+  observer.observe(document.body,{childList:true,subtree:true});
+  document.addEventListener('DOMContentLoaded',updateButtons,{once:true});
+  setTimeout(updateButtons,0);
+  window.__ivNativeFileOpen=showViewer;
+})();
