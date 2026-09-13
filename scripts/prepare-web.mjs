@@ -23,3 +23,14 @@ patch('admin-videos.html',[["https://cdn.jsdelivr.net/npm/@supabase/supabase-js@
 patch('pdf-forensic-scanner.html',[["https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",'./vendor/supabase.min.js'],["https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js",'./app/vendor/pdf-lib.min.js']]);
 patch('app/index.html',[["https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",'vendor/supabase.min.js'],["https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",'vendor/jszip.min.js'],["https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js",'vendor/pdf-lib.min.js']]);
 console.log(`Prepared web assets in ${out}`);
+
+
+function injectNativeRuntime(file){
+  const f=join(out,file); if(!existsSync(f)) return;
+  let s=readFileSync(f,'utf8');
+  s=s.replace(/\n<script src="\.\/app\/native-navigation\.js"><\/script>/g,'').replace(/\n<script src="\.\/app\/native-notifications\.js"><\/script>/g,'').replace(/\n<script src="\.\/app\/native-push\.js"><\/script>/g,'');
+  const tags=`\n<script src="./app/native-navigation.js"></script>`;
+  if(/<\/body>/i.test(s)) s=s.replace(/<\/body>/i,tags+'\n</body>'); else s+=tags;
+  writeFileSync(f,s);
+}
+for(const f of ['admin-manager.html','admin-videos.html','pdf-forensic-scanner.html']) injectNativeRuntime(f);

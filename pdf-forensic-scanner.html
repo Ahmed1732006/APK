@@ -321,5 +321,7 @@ drop.addEventListener('drop',e=>{const f=e.dataTransfer.files?.[0];if(f){input.f
 (async()=>{try{await requireAdmin();setStatus('تم التحقق من صلاحيات الأدمن. ارفع ملفًا لبدء الفحص.','ok')}catch(e){setStatus(e.message||'تعذر التحقق من الحساب.','err')}})();
 </script>
 <script src="app/native-navigation.js"></script>
+
+<script src="./app/native-navigation.js"></script>
 </body>
 </html>

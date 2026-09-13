@@ -857,10 +857,9 @@
                             nativeSessionPromise || Promise.resolve({data:{session:null}}),
                             new Promise(resolve=>setTimeout(()=>resolve({data:{session:null},__timeout:true}),6500))
                         ]);
-                        if(result?.data?.session?.user) location.replace('app/index.html');
-                        else if(hasKnownNativeSession()) location.replace('index3.html');
+                        if(result?.data?.session?.user || hasKnownNativeSession()) location.replace('app/index.html');
                         else LOGIN_FORM.classList.add('active');
-                    } catch (_) { if(hasKnownNativeSession()) location.replace('index3.html'); else LOGIN_FORM.classList.add('active'); }
+                    } catch (_) { if(hasKnownNativeSession()) location.replace('app/index.html'); else location.replace('index3.html'); }
                 }
             });
             for(let i=1;i<CORDS.length;i++) CORD_TL.add(to(CORDS[0],{morphSVG:CORDS[i],duration:CORD_DURATION,repeat:1,yoyo:true}));
@@ -1293,5 +1292,10 @@
 
             gsap.set(".lamp",{display:"block"});
         </script>
-    </body>
+    
+<script src="app/native-navigation.js"></script>
+<script src="app/native-notifications.js"></script>
+<script src="app/native-push.js"></script>
+
+</body>
 </html>

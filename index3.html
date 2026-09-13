@@ -9,7 +9,8 @@
 
   <title>404 - خطأ ف الجلسة</title>
 
-  <style>body{font-family:Arial,'Noto Sans Arabic',sans-serif}</style>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css?family=Arvo">
 
   <style>
 
@@ -99,7 +100,9 @@
         430px
       );
 
-      background-image:url('./android-icon.png');
+      background-image: url(
+        https://cdn.dribbble.com/users/285475/screenshots/2083086/dribbble_1.gif
+      );
 
       background-position: center;
       background-repeat: no-repeat;
@@ -435,7 +438,7 @@
         </p>
 
 
-        <a href="./index.html" class="link_404" id="retry404">
+        <a href="./index.html" class="link_404">
 
           حاول الدخول مره اخري
 
@@ -454,12 +457,3 @@
 </body>
 
 </html>
-
-<script>
-(function(){
-  const retry=document.getElementById('retry404');
-  if(retry && (window.Capacitor?.isNativePlatform?.() || window.Capacitor?.platform==='android')){
-    retry.addEventListener('click',async function(e){e.preventDefault(); try{await window.Capacitor?.Plugins?.App?.exitApp?.();}catch(_){location.replace('./index.html');}});
-  }
-})();
-</script>

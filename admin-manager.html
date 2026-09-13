@@ -881,5 +881,7 @@ function staggerCards(container){
 sb.auth.getSession().then(async({data})=>{if(!data.session)return;const {data:p}=await sb.from('profiles').select('is_owner_admin').eq('id',data.session.user.id).maybeSingle();if(p?.is_owner_admin){currentUserId=data.session.user.id;$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');Promise.all([loadUsers(),loadDragonAdminSettings()]);}});
 </script>
 <script src="app/native-navigation.js"></script>
+
+<script src="./app/native-navigation.js"></script>
 </body>
 </html>
