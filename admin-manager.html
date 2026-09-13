@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&family=Tajawal:wght@400;500;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./vendor/supabase.min.js"></script>
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
@@ -260,9 +260,10 @@ button:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
 </div></div>
 
 <div id="appView" class="wrap hidden">
+<div class="iv-admin-back-wrap"><button type="button" class="iv-admin-back" onclick="ivAdminBack()"><i class="fa-solid fa-arrow-right"></i> رجوع</button></div>
 <div class="brandbar">
 <div class="brandmark"><div class="mark"><img src="./10.png" alt="In The Void Videomanagement"></div><div class="txt"><b>In The Void</b><span>Videomanagement</span></div></div>
-<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="livepill"><i></i>متصل الآن</span><button class="btn-cyan" onclick="window.open('https://in-the-void-eta.vercel.app/','_blank','noopener,noreferrer')"><img class="brand-nav-icon" src="./13.png" alt="">In TheVoid</button><button class="btn-purple" onclick="window.open('https://videomanagement-ivory.vercel.app/','_blank','noopener,noreferrer')"><img class="brand-nav-icon" src="./11.png" alt="">إدارة الفيديوهات</button><button class="btn-gray" onclick="logout()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></div>
+<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="livepill"><i></i>متصل الآن</span><button class="btn-cyan" onclick="location.href='./app/index.html'"><img class="brand-nav-icon" src="./13.png" alt="">In TheVoid</button><button class="btn-purple" onclick="location.href='./admin-videos.html'"><img class="brand-nav-icon" src="./11.png" alt="">إدارة الفيديوهات</button><button class="btn-gray" onclick="logout()"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>خروج</button></div>
 </div>
 <div class="card"><div class="top"><div><h2 style="margin-bottom:4px"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>نظرة عامة</h2><div class="sub">كل أدوات الإدارة في مكان واحد.</div></div></div><div class="grid" id="stats"></div></div>
 
@@ -879,5 +880,6 @@ function staggerCards(container){
 
 sb.auth.getSession().then(async({data})=>{if(!data.session)return;const {data:p}=await sb.from('profiles').select('is_owner_admin').eq('id',data.session.user.id).maybeSingle();if(p?.is_owner_admin){currentUserId=data.session.user.id;$('loginView').classList.add('hidden');$('appView').classList.remove('hidden');Promise.all([loadUsers(),loadDragonAdminSettings()]);}});
 </script>
+<script src="app/native-navigation.js"></script>
 </body>
 </html>

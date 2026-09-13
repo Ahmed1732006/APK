@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <title>404 - خطأ ف الجلسة</title>
+
+  <style>body{font-family:Arial,'Noto Sans Arabic',sans-serif}</style>
+
+  <style>
+
+    /* =========================
+       RESET
+    ========================= */
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      overflow-x: hidden;
+      background: #ffffff;
+      font-family: 'Arvo', serif;
+    }
+
+
+    /* =========================
+       MAIN PAGE
+    ========================= */
+
+    .page_404 {
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100svh;
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      padding: 30px 15px;
+      background: #fff;
+    }
+
+
+    /* =========================
+       CONTENT
+    ========================= */
+
+    .content_404 {
+      width: 100%;
+      max-width: 650px;
+
+      text-align: center;
+
+      margin: 0 auto;
+    }
+
+
+    /* =========================
+       404 NUMBER
+    ========================= */
+
+    .error_number {
+      font-size: clamp(70px, 18vw, 120px);
+
+      font-weight: bold;
+
+      line-height: 1;
+
+      margin: 0 0 5px;
+
+      color: #222;
+    }
+
+
+    /* =========================
+       IMAGE / ILLUSTRATION
+    ========================= */
+
+    .four_zero_four_bg {
+
+      width: 100%;
+
+      height: clamp(
+        300px,
+        48vw,
+        430px
+      );
+
+      background-image:url('./android-icon.png');
+
+      background-position: center;
+      background-repeat: no-repeat;
+      background-size: contain;
+
+      margin: 0 auto;
+    }
+
+
+    /* =========================
+       TITLE
+    ========================= */
+
+    .contant_box_404 h3 {
+
+      font-size: clamp(
+        30px,
+        7vw,
+        48px
+      ) !important;
+
+      line-height: 1.4;
+
+      font-weight: bold;
+
+      color: #222;
+
+      margin: 5px 0 15px;
+    }
+
+
+    /* =========================
+       DESCRIPTION
+    ========================= */
+
+    .contant_box_404 p {
+
+      font-size: clamp(
+        18px,
+        4.5vw,
+        26px
+      );
+
+      line-height: 1.8;
+
+      color: #555;
+
+      max-width: 600px;
+
+      margin: 0 auto 25px;
+
+      padding: 0 10px;
+    }
+
+
+    /* =========================
+       BUTTON
+    ========================= */
+
+    .link_404 {
+
+      display: inline-flex;
+
+      align-items: center;
+      justify-content: center;
+
+      min-height: 55px;
+
+      padding: 12px 28px;
+
+      background: #39ac31;
+
+      color: #fff !important;
+
+      font-size: clamp(
+        17px,
+        4.5vw,
+        22px
+      );
+
+      font-weight: bold;
+
+      text-decoration: none;
+
+      border-radius: 10px;
+
+      box-shadow: 0 5px 15px rgba(57, 172, 49, 0.25);
+
+      transition: 0.2s ease;
+    }
+
+
+    .link_404:active {
+
+      transform: scale(0.96);
+
+    }
+
+
+    /* =========================
+       MOBILE
+    ========================= */
+
+    @media (max-width: 600px) {
+
+      .page_404 {
+
+        min-height: 100svh;
+
+        padding: 20px 12px;
+
+      }
+
+
+      .content_404 {
+
+        max-width: 100%;
+
+      }
+
+
+      /* 404 أكبر */
+
+      .error_number {
+
+        font-size: 82px;
+
+        margin-bottom: 0;
+
+      }
+
+
+      /* الصورة أكبر */
+
+      .four_zero_four_bg {
+
+        height: 330px;
+
+        background-size: 100% auto;
+
+      }
+
+
+      /* العنوان */
+
+      .contant_box_404 h3 {
+
+        font-size: 34px !important;
+
+        margin-top: 0;
+
+        margin-bottom: 12px;
+
+      }
+
+
+      /* الكلام */
+
+      .contant_box_404 p {
+
+        font-size: 19px;
+
+        line-height: 1.7;
+
+        margin-bottom: 22px;
+
+      }
+
+
+      /* الزر */
+
+      .link_404 {
+
+        font-size: 18px;
+
+        min-height: 55px;
+
+        padding: 12px 25px;
+
+        border-radius: 10px;
+
+      }
+
+    }
+
+
+    /* =========================
+       SMALL PHONES
+    ========================= */
+
+    @media (max-width: 400px) {
+
+      .page_404 {
+
+        padding: 15px 10px;
+
+      }
+
+
+      .error_number {
+
+        font-size: 70px;
+
+      }
+
+
+      .four_zero_four_bg {
+
+        height: 280px;
+
+        background-size: 105% auto;
+
+      }
+
+
+      .contant_box_404 h3 {
+
+        font-size: 29px !important;
+
+      }
+
+
+      .contant_box_404 p {
+
+        font-size: 17px;
+
+        padding: 0 5px;
+
+      }
+
+
+      .link_404 {
+
+        font-size: 17px;
+
+        padding: 11px 22px;
+
+      }
+
+    }
+
+
+    /* =========================
+       VERY SMALL PHONES
+    ========================= */
+
+    @media (max-width: 340px) {
+
+      .error_number {
+
+        font-size: 62px;
+
+      }
+
+
+      .four_zero_four_bg {
+
+        height: 240px;
+
+      }
+
+
+      .contant_box_404 h3 {
+
+        font-size: 26px !important;
+
+      }
+
+
+      .contant_box_404 p {
+
+        font-size: 15px;
+
+      }
+
+
+      .link_404 {
+
+        font-size: 16px;
+
+        min-height: 50px;
+
+      }
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+  <section class="page_404">
+
+
+    <div class="content_404">
+
+
+      <!-- 404 -->
+
+      <div class="error_number">
+
+        404
+
+      </div>
+
+
+      <!-- Illustration -->
+
+      <div class="four_zero_four_bg">
+
+      </div>
+
+
+      <!-- Text -->
+
+      <div class="contant_box_404">
+
+
+        <h3>
+
+          خطأ ف الجلسة
+
+        </h3>
+
+
+        <p>
+
+          ممكن تكون بسبب عدم وجود انترنت او مشكلة اخري
+
+        </p>
+
+
+        <a href="./index.html" class="link_404" id="retry404">
+
+          حاول الدخول مره اخري
+
+        </a>
+
+
+      </div>
+
+
+    </div>
+
+
+  </section>
+
+
+</body>
+
+</html>
+
+<script>
+(function(){
+  const retry=document.getElementById('retry404');
+  if(retry && (window.Capacitor?.isNativePlatform?.() || window.Capacitor?.platform==='android')){
+    retry.addEventListener('click',async function(e){e.preventDefault(); try{await window.Capacitor?.Plugins?.App?.exitApp?.();}catch(_){location.replace('./index.html');}});
+  }
+})();
+</script>

@@ -26,7 +26,7 @@ if ('serviceWorker' in navigator) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=yes">
 <title>In the void — Video management</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="./vendor/supabase.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -122,7 +122,9 @@ body.theme-creative .creative-dot{width:6px;height:6px;border-radius:50%;backgro
 @keyframes dotPulse{0%,100%{transform:scale(.6);opacity:.2}50%{transform:scale(1.45);opacity:1}}
 @media(max-width:700px){.theme-switcher{padding:7px;gap:6px}.theme-switcher-label{width:100%;padding-bottom:2px}.theme-btn{flex:1;justify-content:center;font-size:.66rem;padding:8px 7px}.theme-btn span:last-child{display:none}}
 @media(prefers-reduced-motion:reduce){.theme-particle,*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+.iv-admin-back-wrap{margin-bottom:10px}.iv-admin-back{display:inline-flex;align-items:center;gap:7px;padding:10px 14px;border:1px solid var(--border);border-radius:12px;background:var(--surface);color:var(--text);font-weight:900;cursor:pointer;box-shadow:var(--shadow-sm)}.iv-admin-back:hover{transform:translateY(-1px)}
 </style>
+<script>function ivAdminBack(){if(history.length>1){history.back();}else{location.replace('./app/index.html');}}</script>
 </head>
 <body>
 
@@ -138,11 +140,12 @@ body.theme-creative .creative-dot{width:6px;height:6px;border-radius:50%;backgro
 </div>
 <div id="app" style="display:none">
   <div class="wrap">
+  <div class="iv-admin-back-wrap"><button type="button" class="iv-admin-back" onclick="ivAdminBack()"><i class="fa-solid fa-arrow-right"></i> رجوع</button></div>
     <header class="header">
       <div class="header-brand"><div class="brand-icon"><img src="./11.png" alt="In the void"></div><div class="brand-text voidBrand"><span class="v-in">In the</span> <span class="v-void">void</span><small>Video management</small></div></div>
       <div class="header-actions">
-        <a id="mainSiteBtn" href="https://in-the-void-eta.vercel.app/" target="_blank" rel="noopener noreferrer" class="header-btn" title="الموقع الرئيسي In the void"><i class="fa-solid fa-house"></i><span>In the void</span></a>
-        <a id="membersMgmtBtn" href="https://membersmanagement.vercel.app/" target="_blank" rel="noopener noreferrer" class="header-btn" title="إدارة الأعضاء"><i class="fa-solid fa-users"></i><span>إدارة الأعضاء</span></a>
+        <a id="mainSiteBtn" href="./app/index.html" class="header-btn" title="الموقع الرئيسي In the void"><i class="fa-solid fa-house"></i><span>In the void</span></a>
+        <a id="membersMgmtBtn" href="./admin-manager.html" class="header-btn" title="إدارة الأعضاء"><i class="fa-solid fa-users"></i><span>إدارة الأعضاء</span></a>
         <label class="fileBtn primary" title="اختيار فيديو"><i class="fa-solid fa-cloud-arrow-up"></i><span>إضافة فيديو</span><input id="fileInput" type="file" accept="video/*"></label>
         <button id="refreshBtn" class="header-btn" title="تحديث"><i class="fa-solid fa-rotate"></i><span>تحديث</span></button>
         <button id="logoutBtn" class="header-btn danger" title="تسجيل الخروج"><i class="fa-solid fa-right-from-bracket"></i><span>خروج</span></button>
@@ -1386,5 +1389,6 @@ checkAuth();
 })();
 </script>
 
+<script src="app/native-navigation.js"></script>
 </body>
 </html>

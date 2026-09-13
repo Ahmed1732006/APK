@@ -137,89 +137,6 @@
     return String(name || 'ملف').trim().replace(/[\\/:*?"<>|]+/g, '_').slice(0, 180) || 'ملف';
   }
 
-
-  // Android APK local-download cache. On the native build we keep downloaded
-  // blobs in IndexedDB, so the next press becomes "فتح" and never re-downloads
-  // the same user/file pair while the local copy still exists. The normal web
-  // site keeps its existing download behaviour unchanged.
-  const IV_NATIVE_CACHE = !!(window.Capacitor && window.Capacitor.isNativePlatform?.());
-  const IV_CACHE_DB = 'in-the-void-local-files-v1';
-  const IV_CACHE_STORE = 'files';
-  let ivCacheDbPromise = null;
-
-  function ivOpenCacheDb(){
-    if(!IV_NATIVE_CACHE || !window.indexedDB) return Promise.resolve(null);
-    if(ivCacheDbPromise) return ivCacheDbPromise;
-    ivCacheDbPromise = new Promise((resolve,reject)=>{
-      const req=indexedDB.open(IV_CACHE_DB,1);
-      req.onupgradeneeded=()=>{
-        const db=req.result;
-        if(!db.objectStoreNames.contains(IV_CACHE_STORE)) db.createObjectStore(IV_CACHE_STORE,{keyPath:'key'});
-      };
-      req.onsuccess=()=>resolve(req.result);
-      req.onerror=()=>reject(req.error||new Error('LOCAL_CACHE_OPEN_FAILED'));
-    }).catch(()=>null);
-    return ivCacheDbPromise;
-  }
-  function ivCacheKey(userId,bucket,path){
-    return [String(userId||''),String(bucket||''),String(path||'')].join('|');
-  }
-  async function ivGetCachedFile(key){
-    const db=await ivOpenCacheDb();
-    if(!db||!key) return null;
-    return await new Promise(resolve=>{
-      try{
-        const tx=db.transaction(IV_CACHE_STORE,'readonly');
-        const req=tx.objectStore(IV_CACHE_STORE).get(key);
-        req.onsuccess=()=>resolve(req.result||null); req.onerror=()=>resolve(null);
-      }catch(_){ resolve(null); }
-    });
-  }
-  async function ivPutCachedFile(key,blob,name,type){
-    const db=await ivOpenCacheDb();
-    if(!db||!key||!blob) return false;
-    return await new Promise(resolve=>{
-      try{
-        const tx=db.transaction(IV_CACHE_STORE,'readwrite');
-        tx.objectStore(IV_CACHE_STORE).put({key,blob,name:String(name||'ملف'),type:String(type||blob.type||'application/octet-stream'),savedAt:Date.now()});
-        tx.oncomplete=()=>resolve(true); tx.onerror=()=>resolve(false); tx.onabort=()=>resolve(false);
-      }catch(_){ resolve(false); }
-    });
-  }
-  async function ivOpenCachedFile(record){
-    if(!record?.blob) return false;
-    const url=URL.createObjectURL(record.blob);
-    const mime=String(record.type||record.blob.type||'application/octet-stream').toLowerCase();
-    const name=safeDownloadName(record.name||'ملف');
-    let host=document.getElementById('iv-native-file-viewer');
-    if(!host){
-      host=document.createElement('div'); host.id='iv-native-file-viewer';
-      host.style.cssText='position:fixed;inset:0;z-index:100900;background:rgba(2,8,23,.94);display:flex;align-items:center;justify-content:center;padding:12px;box-sizing:border-box;direction:rtl;';
-      host.innerHTML='<div style="position:relative;width:min(98vw,1200px);height:min(96vh,950px);background:#050b14;border:1px solid rgba(255,255,255,.14);border-radius:20px;overflow:hidden;box-shadow:0 25px 90px rgba(0,0,0,.5);display:flex;flex-direction:column;"><div style="height:54px;display:flex;align-items:center;gap:10px;padding:0 12px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.10);color:#fff;font:800 13px Cairo,system-ui,sans-serif;"><button type="button" data-iv-close="1" style="width:38px;height:38px;border-radius:12px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08);color:#fff;font-size:22px;cursor:pointer;">×</button><span data-iv-name="1" style="flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></span></div><div data-iv-body="1" style="flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#02070e;"></div></div>';
-      document.body.appendChild(host);
-      host.querySelector('[data-iv-close]').onclick=()=>{host.style.display='none'; const old=host.dataset.objectUrl; if(old) URL.revokeObjectURL(old); host.dataset.objectUrl='';};
-    }
-    const body=host.querySelector('[data-iv-body]');
-    const title=host.querySelector('[data-iv-name]');
-    body.innerHTML=''; title.textContent=name;
-    if(mime.includes('pdf') || /\.pdf$/i.test(name)){
-      const frame=document.createElement('iframe'); frame.src=url; frame.title=name; frame.style.cssText='width:100%;height:100%;border:0;background:#fff;'; body.appendChild(frame);
-    }else if(mime.startsWith('video/')){
-      const v=document.createElement('video'); v.src=url; v.controls=true; v.playsInline=true; v.style.cssText='max-width:100%;max-height:100%;width:100%;height:100%;object-fit:contain;background:#000;'; body.appendChild(v);
-    }else if(mime.startsWith('image/')){
-      const img=document.createElement('img'); img.src=url; img.alt=name; img.style.cssText='max-width:100%;max-height:100%;object-fit:contain;'; body.appendChild(img);
-    }else{
-      const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.textContent='فتح الملف'; a.style.cssText='color:#fff;padding:14px 20px;border-radius:14px;background:#2563eb;text-decoration:none;font:800 15px Cairo,system-ui,sans-serif;'; body.appendChild(a);
-    }
-    const previous=host.dataset.objectUrl; if(previous) URL.revokeObjectURL(previous); host.dataset.objectUrl=url; host.style.display='flex';
-    return true;
-  }
-  async function ivIsFileCached(userId,bucket,path){
-    if(!IV_NATIVE_CACHE) return null;
-    const row=await ivGetCachedFile(ivCacheKey(userId,bucket,path));
-    return row||null;
-  }
-
   function deriveOriginalFileName(path) {
     if (!path) return '';
     const raw = decodeURIComponent(String(path).split('?')[0].split('/').pop() || '');
@@ -399,12 +316,6 @@
   }
 
   async function ivDownloadPreparedMaterial(materialId, sourcePath, name, user, meta={}) {
-    const cacheKey = ivCacheKey(user.id, 'prepared-pdfs', sourcePath);
-    const cached = await ivIsFileCached(user.id, 'prepared-pdfs', sourcePath);
-    if (cached) {
-      await ivOpenCachedFile(cached);
-      return {cached:true};
-    }
     let row = await ivGetPreparedRow(materialId, user.id);
     const sameSource = row && (!row.source_path || row.source_path === sourcePath);
     if (!(sameSource && row.status === 'ready' && Number(row.progress) >= 100 && row.prepared_path)) {
@@ -414,7 +325,6 @@
 
     const { data: blob, error } = await sb.storage.from('prepared-pdfs').download(row.prepared_path);
     if (error) throw error;
-    await ivPutCachedFile(cacheKey, blob, name || row.file_name || 'file.pdf', blob.type || 'application/pdf');
 
     // The prepared copy already contains its forensic marker. Do NOT run
     // pdf-lib again in the browser; that was the old slow path.
@@ -454,20 +364,12 @@
       return ivDownloadPreparedMaterial(Number(meta.materialId), cleanPath, name, user, meta);
     }
 
-    const cacheKey = ivCacheKey(user.id, bucket, cleanPath);
-    const cached = await ivIsFileCached(user.id, bucket, cleanPath);
-    if (cached) {
-      await ivOpenCachedFile(cached);
-      return {cached:true};
-    }
-
     const { data: blob, error } = await sb.storage.from(bucket).download(cleanPath);
     if (error) throw error;
     let output = blob;
     if ((blob.type === 'application/pdf' || /\.pdf$/i.test(name || cleanPath)) && window.PDFLib) {
       output = await ivFingerprintPdf(blob, {materialId:meta.materialId ?? null, name:name || deriveOriginalFileName(cleanPath), path:cleanPath, userId:user.id});
     }
-    await ivPutCachedFile(cacheKey, output, name || deriveOriginalFileName(cleanPath) || 'file', output.type || blob.type || 'application/octet-stream');
     const url = URL.createObjectURL(output);
     const a = document.createElement('a');
     a.href = url;
@@ -1239,18 +1141,6 @@
   const originalDownloadMaterial = downloadMaterial;
   downloadMaterial = async function(item) {
     const activeButton = window.__midadActiveDownloadButton;
-    try {
-      if (IV_NATIVE_CACHE) {
-        const user = await getCurrentAuthUser();
-        const rawPath = item?.filePath || item?.fileData;
-        const cleanPath = extractStoragePath(rawPath,'materials') || rawPath;
-        const cached = user?.id && cleanPath ? await ivIsFileCached(user.id,'materials',cleanPath) : null;
-        if (cached) {
-          await ivOpenCachedFile(cached);
-          return;
-        }
-      }
-    } catch (_) {}
     if (activeButton && typeof window.__midadStartDownloadAnimation === 'function') {
       window.__midadStartDownloadAnimation(activeButton);
     }
@@ -1615,21 +1505,6 @@
       }
 
       wireExpiryFields();
-
-      if (IV_NATIVE_CACHE) {
-        void (async()=>{
-          try {
-            const user = await getCurrentAuthUser();
-            if (!user?.id) return;
-            document.querySelectorAll('.btn-download[data-act="download-file"]').forEach(async b=>{
-              const path=b.dataset.file||'';
-              if(!path || /^https?:\/\//i.test(path)) return;
-              const cached=await ivIsFileCached(user.id,'materials',extractStoragePath(path,'materials')||path);
-              if(cached){ b.classList.add('midad-local-open'); b.innerHTML='<i class="fas fa-folder-open"></i> فتح'; b.title='الملف محفوظ على هذا الجهاز'; b.dataset.cachedOpen='1'; }
-            });
-          } catch (_) {}
-        })();
-      }
 
       document.querySelectorAll('[data-download-file]').forEach(b => {
         if (b.dataset.wired) return;
@@ -2519,7 +2394,6 @@
   const css = document.createElement('style');
   css.id = 'midad-download-fx-style';
   css.textContent = `
-    .btn-download.midad-local-open{font-weight:900}
     .btn-download.midad-dl-fx{
       position:relative;
       overflow:hidden;
