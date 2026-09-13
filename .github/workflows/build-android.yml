@@ -6,21 +6,23 @@ on:
     paths:
       - 'index.html'
       - '2.html'
-      - 'index3.html'
       - 'app/**'
       - '*.html'
       - '*.js'
       - '*.png'
+      - '*.json'
       - 'manifest.webmanifest'
       - 'sw.js'
       - 'package.json'
       - 'capacitor.config.json'
       - 'scripts/**'
+      - 'google-services.json'
       - '.github/workflows/build-android.yml'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -39,11 +41,14 @@ jobs:
       - name: Add Android platform
         run: npx cap add android
 
-      - name: Prepare Android app icon and splash
-        run: node scripts/prepare-android.mjs
+      - name: Add Firebase config
+        run: cp google-services.json android/app/google-services.json
 
       - name: Sync Capacitor
         run: npx cap sync android
+
+      - name: Apply Android branding and icon
+        run: node scripts/prepare-android.mjs
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -53,6 +58,12 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+
+      - name: Set version code
+        working-directory: android
+        run: |
+          sed -i "s/versionCode [0-9]*/versionCode ${GITHUB_RUN_NUMBER}/" app/build.gradle
+          sed -i "s/versionName \"[^\"]*\"/versionName \"1.0.${GITHUB_RUN_NUMBER}\"/" app/build.gradle
 
       - name: Build debug APK
         working-directory: android
