@@ -19,7 +19,7 @@
     <title>IN THE VOID</title>
 
     <!-- Supabase -->
-    <script src="vendor/supabase.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -459,17 +459,10 @@
         function isAdmin() { return isRealAdmin() && !state.viewAsMember; }
         function isOwnerAdmin() { return !!state.user?.isOwnerAdmin; }
 
-        function setHistoryView(){
-            try{history.pushState({ivView:state.view,ivRoot:false,sectionId:state.currentSectionId||null,subId:state.currentSubId||null},'',location.pathname+'#iv-'+state.view); }catch(_){}
-        }
-        function replaceHistoryRoot(){
-            try{history.replaceState({ivView:state.view,ivRoot:true,sectionId:state.currentSectionId||null,subId:state.currentSubId||null},'',location.pathname); }catch(_){}
-        }
         function go(view, opts = {}) {
             state.view = view;
             if (opts.sectionId !== undefined) state.currentSectionId = opts.sectionId;
             if (opts.subId !== undefined) state.currentSubId = opts.subId;
-            setHistoryView();
             render();
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -624,37 +617,6 @@
         // ════════════════════════════════════════════════════════════════════
         //  RENDER
         // ════════════════════════════════════════════════════════════════════
-
-        const IV_OFFLINE_SNAPSHOT = 'iv_offline_snapshot_v4';
-        function offlineSnapshot(){
-            try{
-                return {
-                    savedAt:Date.now(), role:state.role, user:state.user,
-                    sections:state.sections, platformManager:state.platformManager,
-                    platformButtons:state.platformButtons, notifCenterList:state.notifCenterList,
-                    notifCenterSettings:state.notifCenterSettings, dragonControls:state.dragonControls
-                };
-            }catch(_){return null}
-        }
-        function saveOfflineSnapshot(){try{const x=offlineSnapshot();if(x)localStorage.setItem(IV_OFFLINE_SNAPSHOT,JSON.stringify(x));}catch(e){console.warn('offline snapshot save failed',e)}}
-        function loadOfflineSnapshot(){try{const x=JSON.parse(localStorage.getItem(IV_OFFLINE_SNAPSHOT)||'null');return x&&x.sections?x:null}catch(_){return null}}
-        function applyOfflineSnapshot(x){if(!x)return false;state.role=x.role||state.role||'member';state.user=x.user||state.user;state.sections=Array.isArray(x.sections)?x.sections:[];state.platformManager=x.platformManager||state.platformManager;state.platformButtons=Array.isArray(x.platformButtons)?x.platformButtons:[];state.notifCenterList=Array.isArray(x.notifCenterList)?x.notifCenterList:[];state.notifCenterSettings=x.notifCenterSettings||state.notifCenterSettings;state.dragonControls=x.dragonControls||state.dragonControls;state.view='home';state.currentSectionId=null;state.currentSubId=null;return true}
-        function openNativeErrorPage(reason){console.warn('Native startup fallback:',reason);if(window.Capacitor?.isNativePlatform?.()||window.Capacitor?.platform==='android')location.replace('../index3.html');else renderAccessMessage('تعذر تحميل المنصة',String(reason||'حدث خطأ أثناء التحميل.'));}
-        window.addEventListener('popstate',()=>{const h=history.state;if(!h?.ivView)return;state.view=h.ivView;state.currentSectionId=h.sectionId||null;state.currentSubId=h.subId||null;state.modal=null;state.confirm=null;render();});
-        window.__ivHandleNativeNotification=function(extra){
-            if(!extra)return;
-            if(!state.user?.id){window.__ivPendingNativeNotification=extra;return;}
-            (async()=>{
-                try{
-                    if(extra.kind==='notification'){
-                        await loadNotifCenterList(); state.notifCenterExpandedId=String(extra.id||''); openModal('notif-center',{}); try{if(extra.id) await sb.rpc('notif_center_mark_opened_v2',{p_notif_id:String(extra.id)});}catch(_){ }
-                    }else if(extra.kind==='admin-message'){
-                        const {data,error}=await sb.rpc('midad_get_my_admin_messages'); if(error)throw error;
-                        const rows=Array.isArray(data)?data:[]; const hit=rows.filter(x=>String(x.id)===String(extra.id)); openModal('user-message',{messages:hit.length?hit:rows.slice(0,1)});
-                    }
-                }catch(e){showToast?.('تعذر فتح الإشعار حاليًا.','error')}
-            })();
-        };
 
         function render() {
             const app = document.getElementById('app');
@@ -955,12 +917,9 @@
                 const thumbStyle = hasImage ? `background-image:url(${it.image})` : '';
                 const thumbClass = hasImage ? '' : 'placeholder';
                 const hasFile = it.fileData && it.fileData.length > 0;
-                const fileName = it.fileName || it.name || 'محاضرة';
-                const isVideoFile = /\.(mp4|webm|mov|m4v|ogv)$/i.test(String(fileName)) || /\.(mp4|webm|mov|m4v|ogv)(?:$|[?#])/i.test(String(it.fileData));
-                const downloadBtn = hasFile ? (isVideoFile
-                    ? `<button class="btn-download" data-act="open-video-file" data-file="${escapeHtml(it.fileData)}" data-name="${escapeHtml(fileName)}"><i class="fas fa-play"></i> مشاهدة</button>`
-                    : `<button class="btn-download" data-act="download-file" data-file="${escapeHtml(it.fileData)}" data-name="${escapeHtml(fileName)}"><i class="fas fa-download"></i> تحميل</button>`) :
-                    `<button class="btn-download disabled"><i class="fas fa-ban"></i> غير متوفر</button>`;
+                const downloadBtn = hasFile ?
+                    `<button class="btn-download" data-act="download-file" data-file="${it.fileData}" data-name="${it.fileName || 'محاضرة'}"><i class="fas fa-download"></i> تحميل</button>` :
+                    `<button class="btn-download disabled"><i class="fas fa-download"></i> غير متوفر</button>`;
                 const adminActions = isAdminRole ? `
                   <div class="card-admin-actions">
                     <button data-act="edit-item" data-item="${it.id}" title="تعديل" data-stop-prop="1"><i class="fas fa-edit"></i></button>
@@ -974,7 +933,7 @@
                 return `
               <div class="item-row anim-fade-up">
                 ${adminActions}
-                <div class="item-thumb ${thumbClass}" data-material-image="${hasImage ? escapeHtml(it.image) : ''}" data-material-name="${escapeHtml(it.name || it.fileName || 'صورة')}" style="${thumbStyle}">${!hasImage ? '📄' : ''}</div>
+                <div class="item-thumb ${thumbClass}" style="${thumbStyle}">${!hasImage ? '📄' : ''}</div>
                 <div class="item-info">
                   <div class="item-name ${it.name ? '' : 'empty'}" style="font-weight:${it.textBold===false?'700':'900'};color:${escapeHtml(it.textColor||'#111827')}">${escapeHtml(it.name || 'بدون اسم')}</div>
                   ${isAdminRole ? `<div class="item-visibility"><i class="fas fa-eye"></i> ${escapeHtml(visibilityLabel(it.visibilityMode))}</div>` : ''}
@@ -1301,7 +1260,7 @@
                       ? `<button class="profile-page-btn" data-act="exit-view-as-member"><i class="fas fa-right-from-bracket"></i> الرجوع لوضع الأدمن</button>`
                       : `<button class="profile-page-btn" data-act="enter-view-as-member"><i class="fas fa-eye"></i> المشاهدة (معاينة كعضو)</button>`) : ''}
                     ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-notif-admin" title="إدارة الإشعارات"><i class="fas fa-bell"></i> إدارة الإشعارات</button>` : ''}
-                    ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-video-library" title="إدارة فيديوهات الترحيب"><i class="fas fa-film"></i> إدارة الفيديوهات</button>` : ''} ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-admin-manager" title="فتح لوحة إدارة الأعضاء" ><i class="fas fa-screwdriver-wrench"></i> إدارة الأعضاء</button>` : ''} ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-pdf-scanner" title="فحص بصمات PDF" ><i class="fas fa-fingerprint"></i> فحص بصمات PDF</button>` : ''}
+                    ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-video-library" title="إدارة فيديوهات الترحيب"><i class="fas fa-film"></i> إدارة الفيديوهات</button>` : ''} ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-admin-manager" title="فتح لوحة إدارة الأعضاء" onclick="location.href='../admin-manager.html'"><i class="fas fa-screwdriver-wrench"></i> إدارة الأعضاء</button>` : ''} ${isAdmin() ? `<button class="profile-page-btn profile-video-library-btn" data-act="open-pdf-scanner" title="فحص بصمات PDF" onclick="location.href='../pdf-forensic-scanner.html'"><i class="fas fa-fingerprint"></i> فحص بصمات PDF</button>` : ''}
                     <button class="profile-page-btn danger" data-act="logout"><i class="fas fa-sign-out-alt"></i> تسجيل خروج</button>
                   </div>
                 </div>
@@ -1413,7 +1372,6 @@
         async function openUsersManagement(){
             if(!isAdmin()) { showToast('غير مصرح به','error'); return; }
             state.view='users';
-            setHistoryView();
             state.usersLoading=true;
             render();
             try{
@@ -3270,24 +3228,11 @@
                      break;
                  }
 
-                case 'open-admin-manager': {
-                    if(!isAdmin()) return showToast('غير مصرح به','error');
-                    location.href = new URL('../admin-manager.html', document.baseURI).href;
-                    break;
-                }
-
-                case 'open-pdf-scanner': {
-                    if(!isAdmin()) return showToast('غير مصرح به','error');
-                    location.href = new URL('../pdf-forensic-scanner.html', document.baseURI).href;
-                    break;
-                }
-
                 case 'open-notif-admin': {
                     if(!isAdmin()) return showToast('غير مصرح به','error');
                     state.notifAdminEditing = null;
                     state._notifDraftTarget = 'all';
                     state.view = 'notif-admin';
-                    setHistoryView();
                     render();
                     if(!state.users.length){
                         try{ const {data,error}=await sb.from('profiles').select('*').order('created_at',{ascending:false}); if(error) throw error; state.users=data||[]; }catch(_){}
@@ -3403,6 +3348,13 @@
                             });
                             if(error) throw error;
                             showToast('تم إرسال الإشعار.','success');
+                            // Also push it as a real phone notification (works even
+                            // with the app fully closed), not just inside the app.
+                            try{
+                                await sb.functions.invoke('send-push', {
+                                    body: { title, body, url: 'app/index.html?openNotifCenter=1' }
+                                });
+                            }catch(pushErr){ console.warn('send-push call failed', pushErr); }
                         }
                         state.notifAdminEditing = null;
                         state._notifDraftTitle = ''; state._notifDraftBody = ''; state._notifDraftTarget = 'all'; state._notifDraftTargetUserIds = [];
@@ -4630,36 +4582,31 @@ async function listWelcomeVideoObjects(path=''){
             }catch(_){ /* لا تمنع فتح المنصة إذا لم يكن سجل المدير موجودًا بعد */ }
         }
 
-        window.__ivOfflineRefresh=async function(){
-            if(!navigator.onLine || !currentAuthUser) return;
-            try{
-                await Promise.all([loadData(),loadPlatformManager(),loadWelcomeVideoCampaign(),loadPlatformButtons(),loadNotifCenter(),loadDragonControls()]);
-                saveOfflineSnapshot();render();window.__ivNativeNotificationsSync?.(true);
-            }catch(e){console.warn('online refresh failed',e)}
-        };
-
         async function bootApp(){
             try{
-                // Give Supabase a short silent window to restore the persisted
-                // session. During this time we keep the app on its own loading
-                // surface; we never flash the login page.
-                const sessionResult = await Promise.race([
-                    sb.auth.getSession(),
-                    new Promise(resolve=>setTimeout(()=>resolve({data:{session:null},error:null,__timeout:true}),7000))
-                ]);
-                const session=sessionResult?.data?.session || null;
-                if(!session?.user){openNativeErrorPage('لم يتم العثور على جلسة محفوظة.');return;}
-                currentAuthUser = session.user;
-                if(!navigator.onLine){
-                    const snap=loadOfflineSnapshot();
-                    if(!snap||!applyOfflineSnapshot(snap)) throw new Error('NO_OFFLINE_DATA');
-                    replaceHistoryRoot();render();
-                    window.__ivNativeNotificationsSync?.(false);
-                    return;
+                // When launched from the Android startup fallback, give Supabase
+                // one last short chance to restore a persisted session before
+                // showing Session Guard. This prevents a false guard flash when
+                // the native WebView is still restoring local storage.
+                const startupGuard = new URLSearchParams(location.search).get('startupGuard') === '1';
+                let session = null;
+                let lastErr = null;
+                for(let attempt=0; attempt < (startupGuard ? 3 : 1); attempt++) {
+                    try {
+                        const r = await Promise.race([
+                            sb.auth.getSession(),
+                            new Promise((_,reject)=>setTimeout(()=>reject(new Error('SESSION_RESTORE_TIMEOUT')), 2200))
+                        ]);
+                        session = r?.data?.session || null;
+                        if(session?.user) break;
+                    } catch(e) { lastErr = e; }
+                    if(!session?.user && attempt < 2) await new Promise(r=>setTimeout(r,250));
                 }
+                if(!session?.user){renderAccessMessage('لا توجد جلسة دخول','افتح الموقع من البداية وسجل الدخول أولًا.','العودة لبداية الموقع',{sessionGuard:true});return;}
+                currentAuthUser = session.user;
                 const {data:profile,error}=await sb.from('profiles').select('*').eq('id',session.user.id).maybeSingle();
                 if(error)throw error;
-                if(!profile){openNativeErrorPage('لم يتم العثور على بيانات الحساب.');return;}
+                if(!profile){renderAccessMessage('الحساب غير مكتمل','توجد جلسة Auth لكن لا يوجد سجل لهذا المستخدم في profiles.');return;}
                 const admin=profile.role==='admin';
                 if(!admin&&profile.status==='revoked'){renderAccessMessage('الحساب موقوف','تواصل مع الإدارة لإعادة التفعيل.');return;}
                 if(!admin&&profile.status==='pending'){renderAccessMessage('الحساب في انتظار الموافقة','بعد الموافقة ستتمكن من الدخول.');return;}
@@ -4669,10 +4616,7 @@ async function listWelcomeVideoObjects(path=''){
                 state.user={id:profile.id||session.user.id, name:profile.full_name||profile.name||session.user.user_metadata?.full_name||'عضو',email:profile.email||session.user.email||'',phone:profile.phone_number||profile.phone||'',avatar:publicStorageUrl('avatars',profile.avatar_path||profile.avatar_url), profile_title:profile.profile_title||'', visible_titles:(profile.visible_titles!=null?profile.visible_titles:null), isOwnerAdmin:!!profile.is_owner_admin};
                 const firstOpen=!profile.first_opened_at&&!profile.first_seen_at;
                 void sb.rpc('record_user_open').then(()=>{},()=>{});
-                if(!navigator.onLine){const snap=loadOfflineSnapshot();if(!snap||!applyOfflineSnapshot(snap))throw new Error('NO_OFFLINE_DATA');}else{await Promise.all([loadData(),loadPlatformManager(),loadWelcomeVideoCampaign(),loadPlatformButtons(),loadNotifCenter(),loadDragonControls()]);state.view='home';replaceHistoryRoot();saveOfflineSnapshot();}
-                render();
-                if(navigator.onLine) window.__ivNativeNotificationsSync?.(true);
-                if(window.__ivPendingNativeNotification){const p=window.__ivPendingNativeNotification;window.__ivPendingNativeNotification=null;setTimeout(()=>window.__ivHandleNativeNotification?.(p),300);}
+                await Promise.all([loadData(),loadPlatformManager(),loadWelcomeVideoCampaign(),loadPlatformButtons(),loadNotifCenter(),loadDragonControls()]);state.view='home';render();
                 await new Promise(resolve=>showWelcomeVideoOnce(()=>{if(firstOpen) openModal('first-welcome',{});resolve();}));
                 try{
                     const {data:messages,error:messagesError}=await sb.rpc('midad_get_my_admin_messages');
@@ -4687,7 +4631,7 @@ async function listWelcomeVideoObjects(path=''){
                 if(!state.user.phone && !state.modal){
                     openModal('phone-required',{});
                 }
-            }catch(e){console.error(e);if(!navigator.onLine){const snap=loadOfflineSnapshot();if(snap&&applyOfflineSnapshot(snap)){replaceHistoryRoot();render();return;}}openNativeErrorPage(e?.message||'حدث خطأ أثناء تحميل المنصة.');}
+            }catch(e){console.error(e);renderAccessMessage('تعذر تحميل المنصة',e.message||'خطأ غير معروف.');}
         }
         let explicitLogout=false;
         sb.auth.onAuthStateChange((event)=>{if(event==='SIGNED_OUT'&&explicitLogout)location.replace('../index.html');});
@@ -4717,19 +4661,113 @@ if (!window.__midadDragonThemeObserver) {
   window.__midadDragonThemeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-midad-theme']});
 }
 </script>
-<script src="vendor/jszip.min.js"></script>
-<script src="vendor/pdf-lib.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="../pdf-fingerprint-engine.js"></script>
 <script src="../midad-round5.js"></script>
-<script src="native-app.js"></script>
-<script src="native-navigation.js"></script>
-<script src="native-notifications.js"></script>
-<script>window.addEventListener('online',()=>setTimeout(()=>window.__ivOfflineRefresh?.(),900));bootApp();</script>
+<script>bootApp();</script>
 <script src="theme-common.js"></script>
 <script src="theme-system.js"></script>
+<script>
+(function ivNativeIntegration(){
+    // Everything here is best-effort: on the plain web site (no Capacitor)
+    // window.Capacitor is undefined and this whole block silently does nothing.
+    function whenBooted(fn, tries){
+        tries = tries || 0;
+        if(typeof openModal==='function' && typeof loadNotifCenterList==='function'){ fn(); return; }
+        if(tries > 100) return; // ~10s, give up quietly
+        setTimeout(function(){ whenBooted(fn, tries+1); }, 100);
+    }
 
-<script src="native-push.js"></script>
+    function openNotifCenterNow(){
+        whenBooted(async function(){
+            try{ await loadNotifCenterList(); state.notifCenterExpandedId=null; openModal('notif-center', {}); }
+            catch(e){ console.warn('open notif center failed', e); }
+        });
+    }
 
+    // Deep link from a system notification tap (?openNotifCenter=1) or from
+    // the service worker's notificationclick handler on the web build.
+    try{
+        const params = new URLSearchParams(location.search);
+        if(params.get('openNotifCenter')==='1') openNotifCenterNow();
+    }catch(_){}
+
+    if(!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) return;
+
+    // ── Hardware back button ──────────────────────────────────────────
+    // Goal: pressing back never re-shows the blue login/loading screen
+    // (index.html). Inside the app it closes whatever modal is open;
+    // at the app's home screen it exits the app instead of navigating
+    // backward into the login gate.
+    try{
+        const { App } = window.Capacitor.Plugins || {};
+        if(App && App.addListener){
+            App.addListener('backButton', function(){
+                try{
+                    if(typeof closeModal==='function' && typeof state!=='undefined' && state.modal){
+                        closeModal();
+                        return;
+                    }
+                }catch(_){}
+                try{
+                    const openEl = document.querySelector('.modal-overlay, .modal-backdrop, [data-modal-open="1"]');
+                    if(openEl){ openEl.remove(); return; }
+                }catch(_){}
+                // Already at home with nothing open: minimize instead of
+                // ever navigating back to index.html's login screen.
+                if(App.minimizeApp) App.minimizeApp();
+                else if(App.exitApp) App.exitApp();
+            });
+        }
+    }catch(e){ console.warn('back button wiring failed', e); }
+
+    // ── Notification permission prompt ────────────────────────────────
+    // Ask once per app open if notifications are not enabled yet, so a
+    // user who declined earlier is reminded each time they open the app
+    // (rather than being asked forever in a loop within one session).
+    try{
+        const { PushNotifications } = window.Capacitor.Plugins || {};
+        if(PushNotifications){
+            PushNotifications.checkPermissions().then(function(res){
+                if(res && res.receive !== 'granted'){
+                    return PushNotifications.requestPermissions();
+                }
+            }).then(function(res){
+                if(res && res.receive === 'granted' && PushNotifications.register) PushNotifications.register();
+            }).catch(function(e){ console.warn('push permission check failed', e); });
+
+            PushNotifications.addListener('registration', function(token){
+                // Every device registers to Firebase; the server side sends to
+                // topic "all_users" so a broadcast notification/admin message
+                // reaches everyone at once, even with the app fully closed.
+                try{
+                    const { FCM } = window.Capacitor.Plugins || {};
+                    if(FCM && FCM.subscribeTo){
+                        FCM.subscribeTo({ topic: 'all_users' }).catch(function(e){ console.warn('FCM topic subscribe failed', e); });
+                    }
+                    whenBooted(async function(){
+                        try{
+                            const user = (typeof getCurrentAuthUser==='function') ? await getCurrentAuthUser() : null;
+                            if(user && user.id && typeof sb!=='undefined'){
+                                await sb.from('device_push_tokens').upsert({
+                                    user_id: user.id, token: token.value, platform: 'android', updated_at: new Date().toISOString()
+                                }, { onConflict: 'user_id,token' });
+                            }
+                        }catch(e){ console.warn('save push token failed', e); }
+                    });
+                }catch(e){ console.warn('subscribe to topic failed', e); }
+            });
+
+            // Tapping a system notification (whether the app was open,
+            // backgrounded, or fully closed) opens the notifications screen.
+            PushNotifications.addListener('pushNotificationActionPerformed', function(){
+                openNotifCenterNow();
+            });
+        }
+    }catch(e){ console.warn('push notifications wiring failed', e); }
+})();
+</script>
 </body>
 </html>
 
